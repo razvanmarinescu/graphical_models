@@ -1,0 +1,11 @@
+*.pyc
+*~
+*.swp
+group_repo
+*.~m
+*.aux
+*.log
+*.out
+*.backup
+cmbi/information_theory_mccay.pdf
+

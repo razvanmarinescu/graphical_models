@@ -1,0 +1,278 @@
+\documentclass[11pt,a4paper,oneside]{report}
+
+
+\usepackage{amsmath,amssymb,calc,ifthen}
+
+\usepackage{float}
+%\usepackage{cancel}
+
+\usepackage[table,usenames,dvipsnames]{xcolor} % for coloured cells in tables
+
+\usepackage{tikz}
+
+% Allows us to click on links and references!
+
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks,
+    citecolor=black,
+    filecolor=black,
+    linkcolor=black,
+    urlcolor=black
+}
+
+% Nice package for plotting graphs
+% See excellent guide:
+% http://www.tug.org/TUGboat/tb31-1/tb97wright-pgfplots.pdf
+\usetikzlibrary{plotmarks}
+\usepackage{amsmath,graphicx}
+\usepackage{epstopdf}
+\usepackage{caption}
+\usepackage{subcaption}
+
+% highlight - useful for TODOs and similar
+\usepackage{color}
+\newcommand{\hilight}[1]{\colorbox{yellow}{#1}}
+
+\newcommand\ci{\perp\!\!\!\perp} % perpendicular sign
+\newcommand*\rfrac[2]{{}^{#1}\!/_{#2}} % diagonal fraction
+
+\usepackage{listings}
+
+
+
+% margin size
+\usepackage[margin=1in]{geometry}
+
+\tikzstyle{state}=[circle,thick,draw=black, align=center, minimum size=2.1cm,
+inner sep=0]
+\tikzstyle{vertex}=[circle,thick,draw=black]
+\tikzstyle{terminal}=[rectangle,thick,draw=black]
+\tikzstyle{edge} = [draw,thick]
+\tikzstyle{lo} = [edge,dotted]
+\tikzstyle{hi} = [edge]
+\tikzstyle{trans} = [edge,->]
+
+
+\definecolor{mygreen}{rgb}{0,0.6,0}
+\definecolor{mygray}{rgb}{0.5,0.5,0.5}
+\definecolor{mymauve}{rgb}{0.58,0,0.82}
+
+\lstset{ %
+  backgroundcolor=\color{white},   % choose the background color; you must add 
+%\usepackage{color} or \usepackage{xcolor}
+  basicstyle=\footnotesize,        % the size of the fonts that are used for the 
+%code
+  breakatwhitespace=false,         % sets if automatic breaks should only happen 
+%at whitespace
+  breaklines=true,                 % sets automatic line breaking
+  captionpos=b,                    % sets the caption-position to bottom
+  commentstyle=\color{mygreen},    % comment style
+  deletekeywords={...},            % if you want to delete keywords from the 
+%given language
+  escapeinside={\%*}{*)},          % if you want to add LaTeX within your code
+  extendedchars=true,              % lets you use non-ASCII characters; for 
+%8-bits encodings only, does not work with UTF-8
+  frame=single,                    % adds a frame around the code
+  keepspaces=true,                 % keeps spaces in text, useful for keeping 
+%indentation of code (possibly needs columns=flexible)
+  keywordstyle=\color{blue},       % keyword style
+  language=Octave,                 % the language of the code
+  morekeywords={*,...},            % if you want to add more keywords to the set
+  numbers=left,                    % where to put the line-numbers; possible 
+%values are (none, left, right)
+  numbersep=5pt,                   % how far the line-numbers are from the code
+  numberstyle=\tiny\color{mygray}, % the style that is used for the line-numbers
+  rulecolor=\color{black},         % if not set, the frame-color may be changed 
+%on line-breaks within not-black text (e.g. comments (green here))
+  showspaces=false,                % show spaces everywhere adding particular 
+%underscores; it overrides 'showstringspaces'
+  showstringspaces=false,          % underline spaces within strings only
+  showtabs=false,                  % show tabs within strings adding particular 
+%underscores
+  stepnumber=2,                    % the step between two line-numbers. If it's 
+%1, each line will be numbered
+  stringstyle=\color{mymauve},     % string literal style
+  tabsize=2,                       % sets default tabsize to 2 spaces
+  title=\lstname                   % show the filename of files included with 
+%\lstinputlisting; also try caption instead of title
+}
+
+
+\title{Graphical Models Coursework 2}
+\author{
+    Razvan Valentin Marinescu\\
+    Student Number: 14060166\\
+  \texttt{razvan.marinescu.14@ucl.ac.uk}
+  \and
+    Konstantinos Georgiadis\\
+    Student Number: 14110861\\
+  \texttt{konstantinos.georgiadis.14@ucl.ac.uk}
+}
+
+\begin{document}
+\belowdisplayskip=12pt plus 3pt minus 9pt
+\belowdisplayshortskip=7pt plus 3pt minus 4pt
+
+\maketitle{}
+
+\section*{Contributions}
+
+The problem was solved slightly different by both of us (in an independent manner), but we got the same answer at the end. The only difference in our solutions was in how we looped over all the possible configurations of the battleships. 
+
+\section*{Battleships Problem}
+Without loss of generality, we can easily transform the given problem into the following equivalent problem. Find the pixel with the highest probability of containing a ship given the following constraints:
+\begin{itemize}
+\item ships cannot collide/overlap on the board
+\item one ship is oriented vertically, the other horizontally
+\item the ships cannot be placed on the blacklisted locations, given in the problem definition: [1, 10; 2, 2;3, 8; etc .. ]
+\end{itemize}
+The first two requirements were already given, while the third one was incorporated given the extra information about the 10 unsuccessful misses. Assuming each pixel is a variable $x_{i,j},i\in \{1,...,10\},j\in \{1,...,10\}$ then if $x_{i,j}=1$ it means that the pixel (i,j) is occupied by a battleship. If $x_{i,j}=0$ then it is water. We want to calculate:\\
+
+\begin{align*}
+\operatorname*{arg\,max}_{i,j}\;p(x_{i,j}=1|x_{1,10}=0,x_{2,2}=0,...,x_{9,9}=0)&=\\\\
+\operatorname*{arg\,max}_{i,j}\;\frac{p(x_{i,j}=1,x_{1,10}=0,x_{2,2}=0,...,x_{9,9}=0)}{p(x_{1,10}=0,x_{2,2}=0,...,x_{9,9}=0)}&
+\end{align*}
+
+However in the calculation of the above probabilities, when we will sum over the variables which are not considered known, we have two possibilities. Either the restrictions for the placement of the battleships is met and there is a uniform probability(say $k$), or the restrictions are not met and the probability is equal to zero. By summing over all the variables which are not known, we will basically have:
+
+\begin{align*}
+\operatorname*{arg\,max}_{i,j}\;\frac{p(x_{i,j}=1,x_{1,10}=0,x_{2,2}=0,...,x_{9,9}=0)}{p(x_{1,10}=0,x_{2,2}=0,...,x_{9,9}=0)}&=\\\\
+\operatorname*{arg\,max}_{i,j}\;\frac{N_{i,j}*K}{N*K}&=\\\\
+\operatorname*{arg\,max}_{i,j}\;\frac{N_{i,j}}{N}
+\end{align*}
+
+Where $N$ is the number of all the acceptable battleship placements given the restrictions $x_{1,10}=0,x_{2,2}=0,...,x_{9,9}=0$ and $N_{i,j}$ is the number of all the acceptable battleship placements with the additional restriction that $x_{i,j}=1$.\\
+We did a brute-force approach by trying to go through every possible “legal” position of each ship on the map. Whenever we managed to find a valid configuration, we incremented a counter for each of the occupied pixels. After all the possible configurations have been analysed and the counters of the respective pixels incremented, we normalise the counter matrix (divide each pixel by the sum of all the pixels in the matrix). However, there must be 10 pixels occupied on the board, so each pixel probability gets multiplied by 10. \textbf{The final result we get is that pixel at position (5,1) has the highest probability of being occupied, which is 0.2069}
+
+For finding all the possible ways to position the boats on the board we do the following:
+\begin{itemize}
+ \item for each legal position of the first boat
+  \begin{itemize}
+  \item for each legal position of the second boat
+      \begin{itemize}
+      \item make sure boats don't collide
+      \item increment counters on the grid of pixels.
+      \end{itemize}
+  \end{itemize}
+\end{itemize}
+
+
+The MATLAB code that implemented this brute-force approach is given below, with appropriate comments. 
+\begin{lstlisting}
+function prob120()
+
+len = 10;
+grid = zeros(len, len); % in each cell (i,j) contains how many possible scenarios exist where it is occupied by any of the boats
+
+boatLen = 5;
+
+illegal_locations = [1, 10; 2, 2;3, 8; 4, 4; 5, 6; 6, 5; 7, 4; 7, 7; 9, 2; 9, 9]';
+
+% a few tests
+testPoints = [ones(boatLen, 1) * 1, ones(boatLen, 1) * 6 + (0:boatLen-1)']'; 
+assert(boat_illegal_location(testPoints, illegal_locations ) == 1);
+
+testPoints = [ones(boatLen, 1) * 1, ones(boatLen, 1) * 5 + (0:boatLen-1)']'; 
+assert(boat_illegal_location(testPoints, illegal_locations ) == 0);
+
+
+% horizontal boat at position (iH,jH) occupies cells (iH, jH), (iH, jH+1), (iH,
+% jH+2), (iH, jH+3) ...
+% vertical boat at position (iV,jV) occupies cells (iV,jV), (iV+1,jV),
+% (iV+2,jV) ...
+
+% fix location of the horizontal ship
+for iH=1:len
+    for jH=1:(len-boatLen+1)
+        % find cells the boat is occupying
+        hBoatPoints = [ones(boatLen, 1) * iH, ones(boatLen, 1) * jH + (0:boatLen-1)']';  
+        
+        % make sure boat is not on illegal location
+        if (boat_illegal_location(hBoatPoints, illegal_locations))
+           continue; 
+        end    
+        
+        % fix location of the vertical ship
+        for iV=1:(len-boatLen+1)
+            for jV=1:len
+                % find cells the boat is occupying
+                vBoatPoints = [ones(boatLen, 1) * iV  + (0:boatLen-1)', ones(boatLen, 1) * jV]'; 
+                        
+                % make sure boat is not on illegal location
+                if (boat_illegal_location(vBoatPoints, illegal_locations))
+                   continue; 
+                end    
+                
+                % make sure boats don't collide
+                if (boat_illegal_location(vBoatPoints, hBoatPoints))
+                    %vBoatPoints
+                    %hBoatPoints
+                   continue; 
+                end
+
+                % update grid counters
+                %[hBoatPoints, vBoatPoints]
+                grid = update_grid(grid, [vBoatPoints, hBoatPoints]);
+            end
+        end
+    end
+end
+
+% normalise the grid
+grid = grid ./ sum(grid(:));
+
+% multiply everything by 10 because there are 10 pixels that are actually
+% occupied on the board (5 pixels for each ship)
+grid = grid .* 10;
+
+grid
+
+max = 0;
+maxI = 1; 
+maxJ = 1;
+
+% find the highest probability in the grid
+for i=1:len
+    for j=1:len
+        if(grid(i,j) > max)
+           maxI = i;
+           maxJ = j;
+           max = grid(i,j); 
+        end
+    end
+end
+
+max
+[maxI, maxJ]
+
+end
+
+function is_on_illegal_loc = boat_illegal_location(boatPoints, illegal_locations)
+
+is_on_illegal_loc = 0;
+
+for point=boatPoints
+    for loc=illegal_locations
+        if (any(point - loc) == 0)
+            is_on_illegal_loc = 1;
+            return;
+        end
+    end
+    
+end
+
+end
+
+function grid = update_grid(grid, boatPoints)
+
+for p=boatPoints
+    grid(p(1),p(2)) = grid(p(1),p(2)) + 1;
+end
+
+end
+\end{lstlisting}
+
+
+
+\end{document}

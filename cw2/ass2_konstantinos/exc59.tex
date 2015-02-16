@@ -1,0 +1,221 @@
+	We first modeled the joint probability distribution. We decided that every person gets a variable describing their location at every timestep, i.e. $l_t^i$ is the variable for person i at timestep t, where $i \in \{1,...,500\}$ and $t \in \{1,...,100\}$. The domain of those variables are every pixel of the 50x50 board, i.e. $dom(l_t^i)=\{(1,1),(1,2),...,(1,50),(2,1),...,(50,50)\}$. The variable $l_t^1$ refers to the dangerous drunk. These are the hidden variables. We also assumed there are 100 observed variables - the board at every timestep - $O_t$. We modeled the joint distribution in the following way:
+	
+	$$p(\mathbf{l,O})=\left( \prod_{i=1}^{500}p(l_1^i) \right) \left( \prod_{i=1}^{500}p(l_2^i|l_1^i) \right) \left( \prod_{t=3}^{100} p(l_t^1|l_{t-1}^1) \left[ \prod_{i=2}^{500}p(l_t^i|l_{t-1}^i,l_{t-2}^i) \right] \right) \left( \prod_{t=1}^{100}p(O_t|l_t^1,...,l_t^{500}) \right)$$
+	
+	This joint distribution follows the code described in drunkmover.m. Specifically we can define the probability distributions with the following code:
+
+\begin{lstlisting}
+pl_1 = zeros(50,50);
+pl_1(3:1:47,3:1:47) = 1/((47-3+1)^2);
+
+pl_2h1gl_1h1 = zeros(50,50,50,50);
+for x = 3:1:47
+    for y = 3:1:47
+        pl_2h1gl_1h1(x+2,y+2,x,y) = 1;
+    end
+end
+
+pl_2higl_1hi = zeros(50,50,50,50);
+for x = 3:1:47
+    for y = 3:1:47
+        pl_2higl_1hi(x+1,y+1,x,y) = 1/4;
+        pl_2higl_1hi(x-1,y+1,x,y) = 1/4;
+        pl_2higl_1hi(x+1,y-1,x,y) = 1/4;
+        pl_2higl_1hi(x-1,y-1,x,y) = 1/4;
+    end
+end
+
+pl_th1gl_tm1h1 = zeros(50,50,50,50);
+for x = 1:1:50
+    for y = 1:1:50
+        counter = 0;
+        if(x + 2 > 50 || y + 2 > 50)
+            counter = counter + 1;
+        else
+            pl_th1gl_tm1h1(x+2,y+2,x,y) = 1/4;
+        end
+        if(x + 2 > 50 || y - 2 < 1)
+            counter = counter + 1;
+        else
+            pl_th1gl_tm1h1(x+2,y-2,x,y) = 1/4;
+        end
+        if(x - 2 < 1 || y + 2 > 50)
+            counter = counter + 1;
+        else
+            pl_th1gl_tm1h1(x-2,y+2,x,y) = 1/4;
+        end
+        if(x - 2 < 1 || y - 2 < 1)
+            counter = counter + 1;
+        else
+            pl_th1gl_tm1h1(x-2,y-2,x,y) = 1/4;
+        end
+        if(counter > 0)
+            pl_th1gl_tm1h1(3:1:47,3:1:47,x,y) = pl_th1gl_tm1h1(3:1:47,3:1:47,x,y) + counter/(4*((47-3+1)^2));
+        end
+    end
+end
+
+pl_thigl_tm1hil_tm2hi = zeros(50,50,50,50,50,50);
+for x1 = 1:1:50
+    for y1 = 1:1:50
+        for x2 = 1:1:50
+            for y2 = 1:1:50
+                probsumto = 0;
+                if(x1 + sign(x1-x2) > 50 || x1 + sign(x1-x2) < 1 || y1 + sign(y1-y2) > 50 || y1 + sign(y1-y2) < 1)
+                    probsumto = probsumto + 0.99*0.99;
+                else
+                    pl_thigl_tm1hil_tm2hi(x1+sign(x1-x2),y1+sign(y1-y2),x1,y1,x2,y2) = 0.99*0.99;
+                end
+                if(x1 - sign(x1-x2) > 50 || x1 - sign(x1-x2) < 1 || y1 + sign(y1-y2) > 50 || y1 + sign(y1-y2) < 1)
+                    probsumto = probsumto + 0.99*0.01;
+                else
+                    pl_thigl_tm1hil_tm2hi(x1-sign(x1-x2),y1+sign(y1-y2),x1,y1,x2,y2) = 0.99*0.01;
+                end
+                if(x1 + sign(x1-x2) > 50 || x1 + sign(x1-x2) < 1 || y1 - sign(y1-y2) > 50 || y1 - sign(y1-y2) < 1)
+                    probsumto = probsumto + 0.99*0.01;
+                else
+                    pl_thigl_tm1hil_tm2hi(x1+sign(x1-x2),y1-sign(y1-y2),x1,y1,x2,y2) = 0.99*0.01;
+                end
+                if(x1 - sign(x1-x2) > 50 || x1 - sign(x1-x2) < 1 || y1 - sign(y1-y2) > 50 || y1 - sign(y1-y2) < 1)
+                    probsumto = probsumto + 0.01*0.01;
+                else
+                    pl_thigl_tm1hil_tm2hi(x1-sign(x1-x2),y1-sign(y1-y2),x1,y1,x2,y2) = 0.01*0.01;
+                end
+                if(probsumto > 0)
+                    pl_thigl_tm1hil_tm2hi(3:1:47,3:1:47,x1,y1,x2,y2) = pl_thigl_tm1hil_tm2hi(3:1:47,3:1:47,x1,y1,x2,y2) + (1-probsumto)*(1/(47-3+1)^2);
+                end
+            end
+        end
+    end
+end
+\end{lstlisting}
+
+where:\\
+\begin{align*}
+p(l_1^i=(x,y))&\ is\ pl\_1(x,y)\\
+p(l_2^1=(x,y)|l_1^1=(x',y'))&\ is\ pl\_2h1gl\_1h1(x,y,x',y')\\
+p(l_2^i=(x,y)|l_1^i=(x',y'))&\ is\ pl\_2higl\_1hi(x,y,x',y')\\
+p(l_t^1=(x,y)|l_{t-1}^1=(x',y'))&\ is\ pl\_th1gl\_tm1h1(x,y,x',y')\\
+p(l_t^i=(x,y)|l_{t-1}^i=(x_{-1},y_{-1}),l_{t-2}^i=(x_{-2},y_{-2}))&\ is\ pl\_thigl\_tm1hil\_tm2hi(x,y,x_{-1},y_{-1},x_{-2},y_{-2})
+\end{align*}
+
+Regarding the observed variables $p(O_t|l_t^1,...,l_t^{500})=1$ when all the variables $l_t$ are in the positions that are occupied in the grid and also that for every occupied location in the grid, there is at least one $l_t$ variable with the x,y coordinates that describe the location. We are now posed with the following optimization problem:
+$$arg\max_{l_1^1,...,l_{100}^1}p(l_1^1,...,l_{100}^1 | O_1,...,O_{100})$$
+Herein lies our problem, as we need to sum over all $l_t^i$ variables $\forall i \neq 1$. This means that at some point we will need to calculate $p(O_t|l_t^1,...,l_t^{500})$. Even with this problem alone, we can simplify it, by only taking into account all the possible permutations (or even just combinations) of $l_t^i$s that make this probability equal to one, but even in that case, there are still a lot of permutations or combinations of these variables that satisfy this. We decided instead to make a simplification of the full HMM, by considering only the variable $l_i^1$ (which from now on we will simply call as $l_i$). Now the problem changes to:
+$$arg\max_{l_1,...,l_{100}}p(l_1,...,l_{100} | O_1,...,O_{100})$$
+However we observe that $l_t$ is conditionally independent of $O_{t-1}$ given $l_{t-1}$. We can therefore rewrite the above problem as:
+\begin{align*}
+&arg\max_{l_1,...,l_{100}}p(l_1,...,l_{100} | O_1,...,O_{100})=\\
+&arg\max_{l_1,...,l_{100}}p(l_1|O_1)\prod_{t=2}^{100}p(l_t|l_{t-1},O_t)\\
+\end{align*}
+
+Hence our code starts by considering every '1' in the board as a possible starting location for the drunk with uniform probability. Then it starts an iteration, where for every possible location that the drunk might have been at $t-1$ and for every possible location given from the 'AND' of $X\{t\}$ and $p(l_t|l_{t-1})$, we save for each new possible location, the most likely path which lead up to it and the probability related with it. Afterwards we can do the backtracking to find the most likely path of the drunk. Testing our method with some examples from drunkmover.m with the ground truth, we found it finds the correct location for about 80\% of the timesteps. MATLAB code:\\
+
+\begin{lstlisting}
+clear all;clc;
+load('drunkproblemX.mat');
+p_1 = zeros(50,50);
+p_1(3:1:47,3:1:47) = 1/((47-3+1)^2);
+
+p_2g1 = zeros(50,50,50,50);
+for x = 3:1:47
+    for y = 3:1:47
+        p_2g1(x+2,y+2,x,y) = 1;
+    end
+end
+
+p_tgtm1 = zeros(50,50,50,50);
+for x = 1:1:50
+    for y = 1:1:50
+        counter = 0;
+        if(x + 2 > 50 || y + 2 > 50)
+            counter = counter + 1;
+        else
+            p_tgtm1(x+2,y+2,x,y) = 1/4;
+        end
+        if(x + 2 > 50 || y - 2 < 1)
+            counter = counter + 1;
+        else
+            p_tgtm1(x+2,y-2,x,y) = 1/4;
+        end
+        if(x - 2 < 1 || y + 2 > 50)
+            counter = counter + 1;
+        else
+            p_tgtm1(x-2,y+2,x,y) = 1/4;
+        end
+        if(x - 2 < 1 || y - 2 < 1)
+            counter = counter + 1;
+        else
+            p_tgtm1(x-2,y-2,x,y) = 1/4;
+        end
+        if(counter > 0)
+            p_tgtm1(3:1:47,3:1:47,x,y) = p_tgtm1(3:1:47,3:1:47,x,y) + counter/(4*((47-3+1)^2));
+        end
+    end
+end
+
+PrevMatrixX = zeros(50,50,99);
+PrevMatrixY = zeros(50,50,99);
+TotalProbability = p_1.*X{1};
+TotalProbability = TotalProbability / sum(sum(TotalProbability));
+
+for timestep = 2:1:100
+    PrevTotalProbability = TotalProbability;
+    TotalProbability = zeros(50,50);
+    %find possible previous locations of drunk 
+    [AllPreviousX,AllPreviousY] = find(PrevTotalProbability);
+    %And for every previous possible location
+    for possiblepreviouslocation = 1:1:length(AllPreviousY)
+        PreviousX = AllPreviousX(possiblepreviouslocation);
+        PreviousY = AllPreviousY(possiblepreviouslocation);
+        %find all the possible new locations
+        TempProb = p_tgtm1(:,:,PreviousX,PreviousY);
+        if(timestep == 2)
+            TempProb = p_2g1(:,:,PreviousX,PreviousY);
+        end
+        TempProb = TempProb .* X{timestep};
+        if(sum(sum(TempProb)) > 0)
+            TempProb = TempProb / sum(sum(TempProb));
+        end
+        [AllNewX,AllNewY] = find(TempProb);
+        %and for every possible new,given old location
+        for possiblenewlocation = 1:1:length(AllNewY)
+            NewX = AllNewX(possiblenewlocation);
+            NewY = AllNewY(possiblenewlocation);
+            %find for each new location the previous location which
+            %has the maximum probability
+            if(PrevTotalProbability(PreviousX,PreviousY) * TempProb(NewX,NewY) > TotalProbability(NewX,NewY))
+                TotalProbability(NewX,NewY) = PrevTotalProbability(PreviousX,PreviousY) * TempProb(NewX,NewY);
+                PrevMatrixX(NewX,NewY,timestep-1)=PreviousX;
+                PrevMatrixY(NewX,NewY,timestep-1)=PreviousY;
+            end
+        end    
+    end  
+end
+[MostLikelyFinalX,MostLikelyFinalY] = find(TotalProbability == max(max(TotalProbability)));
+path = zeros(2,100);
+path(1,100) = MostLikelyFinalX(1);
+path(2,100) = MostLikelyFinalY(1);
+for i = 99:-1:1
+    path(1,i) = PrevMatrixX(path(1,i+1),path(2,i+1),i);
+    path(2,i) = PrevMatrixY(path(1,i+1),path(2,i+1),i);
+end
+\end{lstlisting}
+
+The path variable at the end gives us the entire path where the first row is the X and the second row the Y, so if for example path(1,43) = 12 and path(2,43) = 36, then that means that we think that the matrix had X{43}(12,36) == 2 (according to drunkmover.m the value 2 signified the position of the drunk). The path variable returns to us(first row - first X{t} dimension, second row - second X{t} dimension):\\
+
+Timesteps 1 through 31\\
+39    41    39    37    39    41    43    45    47    45    47    49    47    45    43    41    39    37    39    37    39    37    39    37    35    37    35    37    39    41    39\\
+28    30    32    30    28    30    32    30    28    26    24    22    24    22    24    22    24    22    24    26    28    26    24    26    24    22    20    22    24    26    24\\
+
+Timesteps 32 through 62\\
+41    43    41    39    37    39    41    43    41    43    45    43    41    39    37    39    41    39    41    39    41    39    41    43    41    39    37    39    41    39    37\\
+26    24    26    28    30    32    30    32    30    32    30    32    34    36    34    32    34    32    30    28    30    32    34    36    38    40    42    44    42    44    42\\
+
+Timesteps 63 through 93\\
+35    33    35    33    31    33    35    37    35    37    35    33    31    33    31    29    31    29    31    33    31    29    27    25    27    25    27    25    27    25    27\\
+40    38    36    34    32    34    36    38    36    38    40    38    36    38    40    42    40    42    40    42    44    46    48    46    48    46    44    46    48    46    48\\
+
+Timesteps 94 through 100\\
+25    23    25    23    21    19    21\\
+46    44    46    44    46    44    46\\

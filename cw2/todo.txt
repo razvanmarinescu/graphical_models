@@ -1,0 +1,3 @@
+6.9 write the table of final probabilities
+6.12 re-format the writing a bit more
+5.11 write an algo for part 3 (translate haskell into matlab)
