@@ -1,0 +1,4 @@
+1. equation 9.4.8(book) ... how did he derive it?
+2. eq 12.6.11 and 12.6.12 .. same
+3. right before eq 11.2.12, how did he derive theta^new 
+4. where did he prove that <p(X1)>(q(X1,X2)) = <p(X1)>(q(X1)) ?
