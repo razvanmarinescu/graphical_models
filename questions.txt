@@ -2,3 +2,5 @@
 2. eq 12.6.11 and 12.6.12 .. same
 3. right before eq 11.2.12, how did he derive theta^new 
 4. where did he prove that <p(X1)>(q(X1,X2)) = <p(X1)>(q(X1)) ?
+5. lecture 03 - intro to GMs slide 6, how did he derive the last step?
+6. exam 2012 2.b.ii do we need to triangulate first?
